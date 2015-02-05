@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "clockwork"
-  s.version = "0.7.1"
+  s.version = "1.1.0"
 
   s.authors = ["Adam Wiggins", "tomykaira"]
   s.license = 'MIT'
@@ -17,12 +17,13 @@ Gem::Specification.new do |s|
   s.test_files    = s.files.grep(%r{^(test|spec|features)/})
   s.require_paths = ["lib"]
 
-  s.add_dependency(%q<tzinfo>, ["~> 0.3.35"])
+  s.add_dependency(%q<tzinfo>)
   s.add_dependency(%q<activesupport>)
 
   s.add_development_dependency "bundler", "~> 1.3"
   s.add_development_dependency "rake"
   s.add_development_dependency "daemons"
-  s.add_development_dependency "contest"
+  s.add_development_dependency "test-unit"
+  s.add_development_dependency "minitest", "~> 4.0"
   s.add_development_dependency "mocha"
 end

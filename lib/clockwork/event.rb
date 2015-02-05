@@ -33,7 +33,10 @@ module Clockwork
       @last = convert_timezone(t)
       if thread?
         if @manager.thread_available?
-          Thread.new { execute }
+          t = Thread.new do
+            execute
+          end
+          t['creator'] = @manager
         else
           @manager.log_error "Threads exhausted; skipping #{self}"
         end
@@ -55,7 +58,7 @@ module Clockwork
     end
 
     def elapsed_ready(t)
-      @last.nil? || (t - @last).to_i >= @period
+      @last.nil? || (t - @last.to_i).to_i >= @period
     end
 
     def validate_if_option(if_option)

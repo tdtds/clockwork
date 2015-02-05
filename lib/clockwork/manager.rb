@@ -12,11 +12,14 @@ module Clockwork
     end
 
     def thread_available?
-      Thread.list.count < config[:max_threads]
+      Thread.list.select { |t| t['creator'] == self }.count < config[:max_threads]
     end
 
     def configure
       yield(config)
+      if config[:sleep_timeout] < 1
+        config[:logger].warn 'sleep_timeout must be >= 1 second'
+      end
     end
 
     def default_configuration
@@ -55,7 +58,8 @@ module Clockwork
       log "Starting clock for #{@events.size} events: [ #{@events.map(&:to_s).join(' ')} ]"
       loop do
         tick
-        sleep(config[:sleep_timeout])
+        interval = config[:sleep_timeout] - Time.now.subsec + 0.001
+        sleep(interval) if interval > 0
       end
     end
 

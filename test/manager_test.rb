@@ -1,11 +1,12 @@
 require File.expand_path('../../lib/clockwork', __FILE__)
 require 'rubygems'
-require 'contest'
+require 'test/unit'
 require 'mocha/setup'
 require 'time'
 require 'active_support/time'
+require 'active_support/test_case'
 
-class ManagerTest < Test::Unit::TestCase
+class ManagerTest < ActiveSupport::TestCase
   setup do
     @manager = Clockwork::Manager.new
     class << @manager
@@ -58,6 +59,14 @@ class ManagerTest < Test::Unit::TestCase
     assert_will_run(t=Time.now)
     assert_wont_run(t+60*60*24*6)
     assert_will_run(t+60*60*24*7)
+  end
+
+  test "won't drift later and later" do
+    @manager.every(1.hour, 'myjob')
+
+    assert_will_run(Time.parse("10:00:00.5"))
+    assert_wont_run(Time.parse("10:59:59.999"))
+    assert_will_run(Time.parse("11:00:00.0"))
   end
 
   test "aborts when no handler defined" do
@@ -247,17 +256,38 @@ class ManagerTest < Test::Unit::TestCase
     end
   end
 
-  test "should warn about missing jobs upon exhausting threads" do
-    logger = Logger.new(StringIO.new)
-    @manager.configure do |config|
-      config[:max_threads] = 0
-      config[:logger] = logger
+  describe "max_threads" do
+    test "should warn when an event tries to generate threads more than max_threads" do
+      logger = Logger.new(STDOUT)
+      @manager.configure do |config|
+        config[:max_threads] = 1
+        config[:logger] = logger
+      end
+
+      @manager.every(1.minute, 'myjob1', :thread => true) { sleep 2 }
+      @manager.every(1.minute, 'myjob2', :thread => true) { sleep 2 }
+      logger.expects(:error).with("Threads exhausted; skipping myjob2")
+
+      @manager.tick(Time.now)
     end
 
-    @manager.every(1.minute, 'myjob', :thread => true)
-    logger.expects(:error).with("Threads exhausted; skipping myjob")
+    test "should not warn when thread is managed by others" do
+      begin
+        t = Thread.new { sleep 5 }
+        logger = Logger.new(StringIO.new)
+        @manager.configure do |config|
+          config[:max_threads] = 1
+          config[:logger] = logger
+        end
 
-    @manager.tick(Time.now)
+        @manager.every(1.minute, 'myjob', :thread => true)
+        logger.expects(:error).never
+
+        @manager.tick(Time.now)
+      ensure
+        t.kill
+      end
+    end
   end
 
   describe "callbacks" do

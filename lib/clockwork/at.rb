@@ -12,7 +12,7 @@ module Clockwork
     def self.parse(at)
       return unless at
       case at
-      when /^([[:alpha:]]+)\s(.*)$/
+      when /\A([[:alpha:]]+)\s(.*)\z/
         if wday = WDAYS[$1]
           parsed_time = parse($2)
           parsed_time.wday = wday
@@ -20,11 +20,11 @@ module Clockwork
         else
           raise FailedToParse, at
         end
-      when /^(\d{1,2}):(\d\d)$/
+      when /\A(\d{1,2}):(\d\d)\z/
         new($2.to_i, $1.to_i)
-      when /^\*{1,2}:(\d\d)$/
+      when /\A\*{1,2}:(\d\d)\z/
         new($1.to_i)
-      when /^(\d{1,2}):\*\*$/
+      when /\A(\d{1,2}):\*\*\z/
         new(NOT_SPECIFIED, $1.to_i)
       else
         raise FailedToParse, at
@@ -33,7 +33,7 @@ module Clockwork
       raise FailedToParse, at
     end
 
-    attr_writer :min, :hour, :wday
+    attr_accessor :min, :hour, :wday
 
     def initialize(min, hour=NOT_SPECIFIED, wday=NOT_SPECIFIED)
       @min = min
@@ -46,6 +46,10 @@ module Clockwork
       (@min == NOT_SPECIFIED or t.min == @min) and
         (@hour == NOT_SPECIFIED or t.hour == @hour) and
         (@wday == NOT_SPECIFIED or t.wday == @wday)
+    end
+
+    def == other
+      @min == other.min && @hour == other.hour && @wday == other.wday
     end
 
     private
